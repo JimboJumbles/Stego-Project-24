@@ -1,92 +1,93 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+
 #define HIDE 1
 #define EXTRACT 2
 
-int main(int argc, char* argv[]){
+void hideData(const char* coverFile, const char* messageFile, const char* stegoFile, int threshold);
+void extractData(const char* stegoFile, const char* messageFile, int threshold);
 
-    //check for correct number of arguments
-    if (argc < 4){
+int main(int argc, char* argv[]) {
+    if (argc < 4) {
         printf("ERROR: Incorrect number of parameters.\n");
         return -1;
     }
 
     int action = 0;
-    char stegoFile[64];
-    char coverFile[64];
-    char messageFile[64];
+    char stegoFile[64] = {0};
+    char coverFile[64] = {0};
+    char messageFile[64] = {0};
+    int threshold = 40; // default threshold
 
-    //read first flag in arguments
-    if (strcmp(argv[1], "-hide") == 0){
+    if (strcmp(argv[1], "-hide") == 0) {
         action = HIDE;
-    }
-    else if (strcmp(argv[1], "-extract") == 0){
+    } else if (strcmp(argv[1], "-extract") == 0) {
         action = EXTRACT;
+    } else {
+        printf("ERROR: Unknown action.\n");
+        return -1;
     }
-    switch(action){
-        //read input files for hiding data
+
+    switch(action) {
         case HIDE:
-            //read message file
-            if (strcmp(argv[2], "-m") == 0){
+            if (strcmp(argv[2], "-m") == 0) {
                 strcpy(messageFile, argv[3]);
-            }
-            else{
-                printf("ERROR: Unknown action.");
+            } else {
+                printf("ERROR: Unknown action.\n");
                 return -1;
             }
-            //read cover file
-            if (argc >= 6 && strcmp(argv[4], "-c") == 0){
+            if (argc >= 6 && strcmp(argv[4], "-c") == 0) {
                 strcpy(coverFile, argv[5]);
-            }
-            else{
-                printf("ERROR: Unknown action.");
+            } else {
+                printf("ERROR: Unknown action.\n");
                 return -1;
             }
-            //read stego file if specified, 
-            if (argc == 8 && strcmp(argv[6],  "-o") == 0){
+            if (argc >= 8 && strcmp(argv[6],  "-o") == 0) {
                 strcpy(stegoFile, argv[7]);
-            }
-            else if (argc == 6){
+            } else {
                 strcat(stegoFile, "stego_");
                 strcat(stegoFile, coverFile);
                 strcat(stegoFile, ".bin");
-                break;
             }
-            else{
-                printf("ERROR: Unknown action.");
-                return -1;
+            if (argc == 10 && strcmp(argv[8], "-t") == 0) {
+                threshold = atoi(argv[9]);
             }
+            hideData(coverFile, messageFile, stegoFile, threshold);
             break;
-        //read input data for extracting data
         case EXTRACT:
-            //read stego file
-            if (strcmp(argv[2], "-s") == 0){
+            if (strcmp(argv[2], "-s") == 0) {
                 strcpy(stegoFile, argv[3]);
-            }
-            else{
-                printf("ERROR: Unknown action.");
+            } else {
+                printf("ERROR: Unknown action.\n");
                 return -1;
             }
-            //read message file if specified
-            if (argc == 6 && strcmp(argv[4],  "-o") == 0){
+            if (argc >= 6 && strcmp(argv[4], "-o") == 0) {
                 strcpy(messageFile, argv[5]);
-            }
-            else if (argc == 6){
+            } else {
                 strcat(messageFile, "message_");
                 strcat(messageFile, stegoFile);
                 strcat(messageFile, ".bin");
-                break;
             }
-            else{
-                printf("ERROR: Unknown action.");
-                return -1;
+            if (argc == 8 && strcmp(argv[6], "-t") == 0) {
+                threshold = atoi(argv[7]);
             }
+            extractData(stegoFile, messageFile, threshold);
             break;
         default:
-            printf("ERROR: Unknown action.");
+            printf("ERROR: Unknown action.\n");
             return -1;
     }
+
     printf("cover file: %s\nmessage file: %s\nstego file: %s\n", coverFile, messageFile, stegoFile);
-    
+
     return 0;
+}
+
+void hideData(const char* coverFile, const char* messageFile, const char* stegoFile, int threshold) {
+    
+}
+
+void extractData(const char* stegoFile, const char* messageFile, int threshold) {
+
 }
