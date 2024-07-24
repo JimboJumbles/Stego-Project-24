@@ -1,3 +1,5 @@
+#ifndef WAVE_H
+#define WAVE_H
 // wave.h
 // 
 // contains wave structures
@@ -39,4 +41,4 @@ typedef struct
 
 } W_DATA;
 
-
+#endif

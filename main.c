@@ -14,6 +14,9 @@ int main(int argc, char* argv[]) {
     char stegoFile[64] = {0};
     char coverFile[64] = {0};
     char messageFile[64] = {0};
+    FILE* stegoFilePtr;
+    FILE* coverFilePtr;
+    FILE* messageFilePtr;
     int threshold = 40; // default threshold
 
     if (strcmp(argv[1], "-hide") == 0) {
@@ -48,9 +51,31 @@ int main(int argc, char* argv[]) {
             }
             if (argc == 10 && strcmp(argv[8], "-t") == 0) {
                 threshold = atoi(argv[9]);
+            } else if (argc > 9) {
+                printf("ERROR: Unknown action.\n");
+                return -1;
             }
+
+            //Open all input files
+            coverFilePtr = fopen(coverFile, "r");
+            if( coverFilePtr == NULL){
+                printf("ERROR: Could not open %s.\n", coverFile);
+                return -1;
+            }
+            messageFilePtr = fopen(messageFile, "r");
+            if( messageFilePtr == NULL){
+                printf("ERROR: Could not open %s.\n", messageFile);
+                return -1;
+            }
+            stegoFilePtr = fopen(stegoFile, "w");
+            if( stegoFilePtr == NULL){
+                printf("ERROR: Could not open %s.\n", stegoFile);
+                return -1;
+            }
+
             result = hideData(coverFile, messageFile, stegoFile, threshold);
             break;
+
         case EXTRACT:
             if (strcmp(argv[2], "-s") == 0) {
                 strcpy(stegoFile, argv[3]);
@@ -67,7 +92,23 @@ int main(int argc, char* argv[]) {
             }
             if (argc == 8 && strcmp(argv[6], "-t") == 0) {
                 threshold = atoi(argv[7]);
+            } else if (argc > 7){
+                printf("ERROR: Unknown action.\n");
+                return -1;
             }
+
+            //Open all input files
+            messageFilePtr = fopen(messageFile, "w");
+            if( messageFilePtr == NULL){
+                printf("ERROR: Could not open %s.\n", messageFile);
+                return -1;
+            }
+            stegoFilePtr = fopen(stegoFile, "r");
+            if( stegoFilePtr == NULL){
+                printf("ERROR: Could not open %s.\n", stegoFile);
+                return -1;
+            }
+
             result = extractData(stegoFile, messageFile, threshold);
             break;
         default:
@@ -75,7 +116,10 @@ int main(int argc, char* argv[]) {
             return -1;
     }
 
-    printf("cover file: %s\nmessage file: %s\nstego file: %s\n", coverFile, messageFile, stegoFile);
+    if(action == HIDE) fclose(coverFilePtr);
+    fclose(messageFilePtr);
+    fclose(stegoFilePtr);
+    printf("cover file: %s\nmessage file: %s\nstego file: %s\nthreshold = %d\n", coverFile, messageFile, stegoFile, threshold);
 
-    return 1;
+    return 0;
 }

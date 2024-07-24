@@ -57,7 +57,7 @@ void printFormat(W_FORMAT fmt)
 	return;
 } // printFormat
 
-int main(int argc, char *argv[])
+void main(int argc, char *argv[])
 {
 	FILE *fptr;
 	DWORD fileSize;
@@ -77,20 +77,20 @@ int main(int argc, char *argv[])
 	if(fptr == NULL)
 	{
 		printf("Could not open file named '%s.'\n\n", argv[1]);
-		return -1;
+		return;
 	}
 
 	printf("Successfully opened file %s\n", argv[1]);
 
 	// pChunk[0] is the chunk representing the file header
 	x = readChunkHeader(fptr, &chunk[0]);
-	if(x == FAILURE) return -1;
+	if(x == FAILURE) return;
 
 	// check to make sure it is a RIFF file
 	if(memcmp( &(chunk[0].chunkID), "RIFF", 4) != 0)
 	{
 		printf("\n\nError, file is NOT a RIFF file!\n\n");
-		return -1;
+		return;
 	}
 	fileSize = chunk[0].chunkSize + 8;
 
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
 	if(memcmp( pChunkData[0], "WAVE", 4) != 0)
 	{
 		printf("\n\nError, file is not a WAVE file!\n\n");
-		return -1;
+		return;
 	}
 
 	// chunk[1] should be format chunk, but if not, skip
@@ -110,11 +110,11 @@ int main(int argc, char *argv[])
 	while(cnt < MAX_CHUNKS)
 	{
 		x = readChunkHeader(fptr, &chunk[cnt]);
-		if(x == FAILURE) return -1;
+		if(x == FAILURE) return;
 
 		// read in chunk data
 		pChunkData[cnt] = readChunkData(fptr, chunk[cnt].chunkSize);
-		if(pChunkData[cnt] == NULL) return -1;
+		if(pChunkData[cnt] == NULL) return;
 
 		if(memcmp( &(chunk[cnt].chunkID), "data", 4) == 0)
 		{
@@ -136,13 +136,13 @@ int main(int argc, char *argv[])
 	if(formatFlag == -1)
 	{
 		printf("\n\nError, format chunk not found after %d tries!\n\n", cnt);
-		return -1;
+		return;
 	}
 
 	if(dataFlag == -1)
 	{
 		printf("\n\nError, data chunk not found after %d tries!\n\n", cnt);
-		return -1;
+		return;
 	}
 
 	// put format chunk in our special variable
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
 	if(format.compCode != 1)
 	{
 		printf("\n\nError, this file does not contain uncompressed PCM data!\n\n");
-		return -1;
+		return;
 	}
 	printFormat(format);
 
@@ -183,11 +183,11 @@ int main(int argc, char *argv[])
 	else
 	{
 		printf("Wave file has %d bits/sample and it not handled by this code.\n\n", format.bitsPerSample);
-		return -1;
+		return;
 	}
 
 	printf("\n");
 	fclose(fptr);
-	return 1;
+	return;
 } // main
 
