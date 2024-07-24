@@ -1,12 +1,7 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include "wavStego.h"
 
 #define HIDE 1
 #define EXTRACT 2
-
-void hideData(const char* coverFile, const char* messageFile, const char* stegoFile, int threshold);
-void extractData(const char* stegoFile, const char* messageFile, int threshold);
 
 int main(int argc, char* argv[]) {
     if (argc < 4) {
@@ -15,6 +10,7 @@ int main(int argc, char* argv[]) {
     }
 
     int action = 0;
+    int result = 0;
     char stegoFile[64] = {0};
     char coverFile[64] = {0};
     char messageFile[64] = {0};
@@ -53,7 +49,7 @@ int main(int argc, char* argv[]) {
             if (argc == 10 && strcmp(argv[8], "-t") == 0) {
                 threshold = atoi(argv[9]);
             }
-            hideData(coverFile, messageFile, stegoFile, threshold);
+            result = hideData(coverFile, messageFile, stegoFile, threshold);
             break;
         case EXTRACT:
             if (strcmp(argv[2], "-s") == 0) {
@@ -72,7 +68,7 @@ int main(int argc, char* argv[]) {
             if (argc == 8 && strcmp(argv[6], "-t") == 0) {
                 threshold = atoi(argv[7]);
             }
-            extractData(stegoFile, messageFile, threshold);
+            result = extractData(stegoFile, messageFile, threshold);
             break;
         default:
             printf("ERROR: Unknown action.\n");
@@ -81,13 +77,5 @@ int main(int argc, char* argv[]) {
 
     printf("cover file: %s\nmessage file: %s\nstego file: %s\n", coverFile, messageFile, stegoFile);
 
-    return 0;
-}
-
-void hideData(const char* coverFile, const char* messageFile, const char* stegoFile, int threshold) {
-    
-}
-
-void extractData(const char* stegoFile, const char* messageFile, int threshold) {
-
+    return 1;
 }
