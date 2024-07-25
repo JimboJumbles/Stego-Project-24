@@ -1,21 +1,36 @@
 #include "wavStego.h"
 
-int verifyWaveFile(FILE* waveFile){
+void verifyWaveFile(FILE* waveFile){
+	W_CHUNK chunk[MAX_CHUNKS];
     BYTE *pChunkData[MAX_CHUNKS];
+
+	int x = readChunkHeader(waveFile, &chunk[0]);
+
+	// check to make sure it is a RIFF file
+	if(memcmp( &(chunk[0].chunkID), "RIFF", 4) != 0)
+	{
+		printf("\n\nError, file is NOT a RIFF file!\n\n");
+		exit(-1);
+	}
+
     // check to make sure it is a wave file
 	pChunkData[0] = readChunkData(waveFile, 4);
     if(memcmp( pChunkData[0], "WAVE", 4) != 0){
 		printf("\n\nError, file is not a WAVE file!\n\n");
-		return -1;
+		exit(-1);
 	}
-    else return 1;
+	
+    return;
 }
 
-int hideData(char* coverFile, char*  messageFile, char* stegoFile, int threshold){
+int hideData(FILE* coverFile, FILE*  messageFile, FILE* stegoFile, int threshold){
+	//verify cover file is a wave file
+	verifyWaveFile(coverFile);
+
     return 1;
 }
 
-int extractData(char* stegoFile, char* messageFile, int threshold){
+int extractData(FILE* stegoFile, FILE* messageFile, int threshold){
     return 1;
 }
 
