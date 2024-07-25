@@ -1,5 +1,17 @@
 #include "wavStego.h"
 
+int hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int threshold){
+	//verify cover file is a wave file
+	verifyWaveFile(coverFilePtr);
+	locateDataChunk(coverFilePtr);
+	printf("done\n");
+    return 1;
+}
+
+int extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int threshold){
+    return 1;
+}
+
 void verifyWaveFile(FILE* waveFile){
 	W_CHUNK chunk[MAX_CHUNKS];
     BYTE *pChunkData[MAX_CHUNKS];
@@ -9,29 +21,34 @@ void verifyWaveFile(FILE* waveFile){
 	// check to make sure it is a RIFF file
 	if(memcmp( &(chunk[0].chunkID), "RIFF", 4) != 0)
 	{
-		printf("\n\nError, file is NOT a RIFF file!\n\n");
+		printf("\nError, file is NOT a RIFF file!\n\n");
 		exit(-1);
 	}
 
     // check to make sure it is a wave file
 	pChunkData[0] = readChunkData(waveFile, 4);
     if(memcmp( pChunkData[0], "WAVE", 4) != 0){
-		printf("\n\nError, file is not a WAVE file!\n\n");
+		printf("\nError, file is not a WAVE file!\n\n");
 		exit(-1);
 	}
 	
     return;
 }
 
-int hideData(FILE* coverFile, FILE*  messageFile, FILE* stegoFile, int threshold){
-	//verify cover file is a wave file
-	verifyWaveFile(coverFile);
-
-    return 1;
-}
-
-int extractData(FILE* stegoFile, FILE* messageFile, int threshold){
-    return 1;
+void locateDataChunk(FILE* waveFile){
+	W_CHUNK chunk[MAX_CHUNKS];
+    BYTE *pChunkData[MAX_CHUNKS];
+	int i = 0;
+	do{
+		if(feof(waveFile)){
+			printf("\nError, Data chunk not found\n\n");
+			exit(-1);
+		}
+		i++;
+		readChunkHeader(waveFile, &chunk[i]);
+		pChunkData[i] = readChunkData(waveFile, chunk[i].chunkSize);
+	}while(memcmp( &(chunk[i].chunkID), "data", 4) != 0);
+	return;
 }
 
 int readChunkHeader(FILE *fptr, W_CHUNK *pChunk)
@@ -57,14 +74,14 @@ BYTE *readChunkData(FILE *fptr, int size)
 	ptr = (BYTE *) malloc(size);
 	if(ptr == NULL)
 	{
-		printf("\n\nError, could not allocate %d bytes of memory!\n\n", size);
+		printf("\nError, could not allocate %d bytes of memory!\n\n", size);
 		exit(-1);
 	}
 
 	x = (int) fread(ptr, 1, size, fptr);
 	if(x != size)
 	{
-		printf("\n\nError reading chunkd data!\n\n");
+		printf("\nError reading chunk data!\n\n");
 		exit(-1);
 	}
 
