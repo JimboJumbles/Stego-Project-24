@@ -8,6 +8,7 @@ int verifyWaveFile(FILE* waveFile){
 		printf("\n\nError, file is not a WAVE file!\n\n");
 		return -1;
 	}
+    else return 1;
 }
 
 int hideData(char* coverFile, char*  messageFile, char* stegoFile, int threshold){
