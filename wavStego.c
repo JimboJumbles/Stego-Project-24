@@ -1,10 +1,11 @@
 #include "wavStego.h"
 
 int hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int threshold){
-	int nextByte, numRead;
+	int nextByte, numRead, difference;
 	float avg;
-	BYTE byteGroup[3];
-	int atEndOfFile = 0;
+	BYTE messageByte, byteGroup[3];
+	int endOfStegoFile, endOfMessageFile, index = 0;
+	char nextBit;
 
 	//verify cover file is a wave file
 	verifyWaveFile(coverFilePtr);
@@ -20,23 +21,31 @@ int hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int 
 	locateDataChunk(coverFilePtr);
 
 	//LOOP THROIUGH DATA
-	while (!atEndOfFile){
+	while (!endOfStegoFile){
+
+		if (index == 0 && !endOfMessageFile){
+			if((numRead = fread(messageByte, 1, 1, messageFilePtr)) == EOF) messageByte = 0xff;
+		}
 
 		//Read in 3 bytes
 		if((numRead = fread(byteGroup, 1, 3, coverFilePtr)) != 3){printf("\nERROR: Bytes in cover file could not be read\n\n"); exit(-1);}
 
 		//Compare inner value with outer values
-		avg = (byteGroup[0] + byteGroup[2])/2;
-		//If difference <= threshold
+		avg = (byteGroup[0] + byteGroup[2])/2.0;
+		printf("avg: %f\n", avg);
 
+		//If difference <= threshold
+		difference = byteGroup[1] - (int)avg;
+		if(abs(difference) <= threshold){
 			//If message bit = 1
 				//Change middle byte to 1 less than average if difference is negative
 
 			//If message bit = 0
 				//Change middle byte to 1 less than average if difference is negative
 
+		}
 		//Else, skip group
-
+		index = (index + 1) % 8;
 	}
     return 1;
 }
@@ -143,3 +152,8 @@ BYTE *readChunkData(FILE *fptr, int size)
 
 	return(ptr);	
 } // readChunkData
+
+char getNextBit(BYTE currentByte, int index){
+	char bit = 1 << (7 - index);
+	return (bit & currentByte);
+}
