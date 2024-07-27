@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
                 printf("\nERROR: Could not open %s.\n", coverFile);
                 exit(-1);
             }
-            messageFilePtr = fopen(messageFile, "r");
+            messageFilePtr = fopen(messageFile, "rb");
             if( messageFilePtr == NULL){
                 printf("\nERROR: Could not open %s.\n", messageFile);
                 exit(-1);
@@ -85,7 +85,7 @@ int main(int argc, char* argv[]) {
             if ((2*flagCount + 2) != argc){printf("\nERROR: Usage: StegoProject.exe -extract -s [stego file] (-o [message file]) (-t [threshold])"); exit(-1);}
 
             //Open all input files
-            messageFilePtr = fopen(messageFile, "w");
+            messageFilePtr = fopen(messageFile, "wb");
             if( messageFilePtr == NULL){
                 printf("\nERROR: Could not open %s.\n", messageFile);
                 exit(-1);

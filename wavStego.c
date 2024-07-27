@@ -3,15 +3,52 @@
 int hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int threshold){
 	//verify cover file is a wave file
 	verifyWaveFile(coverFilePtr);
+	//Copy contents of cover file to stego file
+
+	//Navigate to data chunk in cover file
 	locateDataChunk(coverFilePtr);
-	int nextChar;
-	while((nextChar = fgetc(coverFilePtr)) != EOF){
-		fputc(nextChar, stegoFilePtr);
-	}
+
+	//LOOP THROIUGH DATA
+		//Read in 3 bytes
+
+		//Compare inner value with outer values
+
+		//If difference <= threshold
+
+			//If message bit = 1
+				//Change middle byte to 1 less than average if difference is negative
+
+			//If message bit = 0
+				//Change middle byte to 1 less than average if difference is negative
+
+		//Else, skip group
+
     return 1;
 }
 
 int extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int threshold){
+	//verify stego file is a wave file
+	verifyWaveFile(stegoFilePtr);
+	//Copy contents of cover file to stego file
+
+	//Navigate to data chunk in stego file
+	locateDataChunk(stegoFilePtr);
+
+	//LOOP THROIUGH DATA
+		//Read in 3 bytes
+
+		//Compare inner value with outer values
+
+		//If difference <= threshold
+
+			//If difference is positive
+				//1 written to message file
+
+			//If difference is negative
+				//0 written to message file
+
+		//Else, skip group
+		
     return 1;
 }
 
