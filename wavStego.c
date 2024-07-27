@@ -4,7 +4,10 @@ int hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int 
 	//verify cover file is a wave file
 	verifyWaveFile(coverFilePtr);
 	locateDataChunk(coverFilePtr);
-	printf("done\n");
+	int nextChar;
+	while((nextChar = fgetc(coverFilePtr)) != EOF){
+		fputc(nextChar, stegoFilePtr);
+	}
     return 1;
 }
 
@@ -46,6 +49,7 @@ void locateDataChunk(FILE* waveFile){
 		}
 		i++;
 		readChunkHeader(waveFile, &chunk[i]);
+		if (memcmp( &(chunk[i].chunkID), "data", 4) == 0) return;
 		pChunkData[i] = readChunkData(waveFile, chunk[i].chunkSize);
 	}while(memcmp( &(chunk[i].chunkID), "data", 4) != 0);
 	return;

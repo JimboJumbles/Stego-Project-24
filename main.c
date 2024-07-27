@@ -4,6 +4,7 @@
 #define EXTRACT 2
 
 int findInArgv(int argc, char* argv[], char* arg);
+void sanitizeFileName(char* fileName, char* newFileName);
 
 int main(int argc, char* argv[]) {
 
@@ -34,8 +35,10 @@ int main(int argc, char* argv[]) {
         case HIDE:
             result = findInArgv(argc, argv, "-m");
             if (result && argc > result + 1){flagCount++; strcpy(messageFile, argv[result + 1]);}
+            else {printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-t [threshold])"); exit(-1);}
             result = findInArgv(argc, argv, "-c");
             if (result && argc > result + 1){flagCount++; strcpy(coverFile, argv[result + 1]);}
+            else {printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-t [threshold])"); exit(-1);}
             result = findInArgv(argc, argv, "-o");
             if (result && argc > result + 1){flagCount++; strcpy(stegoFile, argv[result + 1]);}
             else {
@@ -58,7 +61,7 @@ int main(int argc, char* argv[]) {
                 printf("\nERROR: Could not open %s.\n", messageFile);
                 exit(-1);
             }
-            stegoFilePtr = fopen(stegoFile, "w");
+            stegoFilePtr = fopen(stegoFile, "wb");
             if( stegoFilePtr == NULL){
                 printf("\nERROR: Could not open %s.\n", stegoFile);
                 exit(-1);
@@ -87,7 +90,7 @@ int main(int argc, char* argv[]) {
                 printf("\nERROR: Could not open %s.\n", messageFile);
                 exit(-1);
             }
-            stegoFilePtr = fopen(stegoFile, "r");
+            stegoFilePtr = fopen(stegoFile, "rb");
             if( stegoFilePtr == NULL){
                 printf("\nERROR: Could not open %s.\n", stegoFile);
                 exit(-1);
