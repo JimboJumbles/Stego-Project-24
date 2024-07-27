@@ -4,7 +4,6 @@
 #define EXTRACT 2
 
 int findInArgv(int argc, char* argv[], char* arg);
-void sanitizeFileName(char* fileName, char* newFileName);
 
 int main(int argc, char* argv[]) {
 
@@ -35,10 +34,10 @@ int main(int argc, char* argv[]) {
         case HIDE:
             result = findInArgv(argc, argv, "-m");
             if (result && argc > result + 1){flagCount++; strcpy(messageFile, argv[result + 1]);}
-            else {printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-t [threshold])"); exit(-1);}
+            else {printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-t [threshold])\n\n"); exit(-1);}
             result = findInArgv(argc, argv, "-c");
             if (result && argc > result + 1){flagCount++; strcpy(coverFile, argv[result + 1]);}
-            else {printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-t [threshold])"); exit(-1);}
+            else {printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-t [threshold])\n\n"); exit(-1);}
             result = findInArgv(argc, argv, "-o");
             if (result && argc > result + 1){flagCount++; strcpy(stegoFile, argv[result + 1]);}
             else {
@@ -48,22 +47,22 @@ int main(int argc, char* argv[]) {
             }
             result = findInArgv(argc, argv, "-t");
             if (result && argc > result + 1){flagCount++; threshold = atoi(argv[result + 1]);}
-            if ((2*flagCount + 2) < argc){printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-t [threshold])"); exit(-1);}
+            if ((2*flagCount + 2) < argc){printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-t [threshold])\n\n"); exit(-1);}
 
             //Open all input files
             coverFilePtr = fopen(coverFile, "rb");
             if( coverFilePtr == NULL){
-                printf("\nERROR: Could not open %s.\n", coverFile);
+                printf("\nERROR: Could not open %s.\n\n", coverFile);
                 exit(-1);
             }
             messageFilePtr = fopen(messageFile, "rb");
             if( messageFilePtr == NULL){
-                printf("\nERROR: Could not open %s.\n", messageFile);
+                printf("\nERROR: Could not open %s.\n\n", messageFile);
                 exit(-1);
             }
             stegoFilePtr = fopen(stegoFile, "wb");
             if( stegoFilePtr == NULL){
-                printf("\nERROR: Could not open %s.\n", stegoFile);
+                printf("\nERROR: Could not open %s.\n\n", stegoFile);
                 exit(-1);
             }
 
@@ -82,31 +81,31 @@ int main(int argc, char* argv[]) {
             }
             result = findInArgv(argc, argv, "-t");
             if (result && argc > result + 1){flagCount++; threshold = atoi(argv[result + 1]);}
-            if ((2*flagCount + 2) != argc){printf("\nERROR: Usage: StegoProject.exe -extract -s [stego file] (-o [message file]) (-t [threshold])"); exit(-1);}
+            if ((2*flagCount + 2) != argc){printf("\nERROR: Usage: StegoProject.exe -extract -s [stego file] (-o [message file]) (-t [threshold])\n\n"); exit(-1);}
 
             //Open all input files
             messageFilePtr = fopen(messageFile, "wb");
             if( messageFilePtr == NULL){
-                printf("\nERROR: Could not open %s.\n", messageFile);
+                printf("\nERROR: Could not open %s.\n\n", messageFile);
                 exit(-1);
             }
             stegoFilePtr = fopen(stegoFile, "rb");
             if( stegoFilePtr == NULL){
-                printf("\nERROR: Could not open %s.\n", stegoFile);
+                printf("\nERROR: Could not open %s.\n\n", stegoFile);
                 exit(-1);
             }
 
             result = extractData(stegoFilePtr, messageFilePtr, threshold);
             break;
         default:
-            printf("\nERROR: Unknown action.\n");
+            printf("\nERROR: Unknown action.\n\n");
             exit(-1);
     }
 
     if(action == HIDE) fclose(coverFilePtr);
     fclose(messageFilePtr);
     fclose(stegoFilePtr);
-    printf("cover file: %s\nmessage file: %s\nstego file: %s\nthreshold = %d\n", coverFile, messageFile, stegoFile, threshold);
+    printf("cover file: %s\nmessage file: %s\nstego file: %s\nthreshold = %d\n\n", coverFile, messageFile, stegoFile, threshold);
 
     return 0;
 }

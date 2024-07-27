@@ -1,18 +1,32 @@
 #include "wavStego.h"
 
 int hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int threshold){
+	int nextByte, numRead;
+	float avg;
+	BYTE byteGroup[3];
+	int atEndOfFile = 0;
+
 	//verify cover file is a wave file
 	verifyWaveFile(coverFilePtr);
+	rewind(coverFilePtr);
+
 	//Copy contents of cover file to stego file
+	while((nextByte = fgetc(coverFilePtr)) != EOF) {fputc(nextByte, stegoFilePtr);}
+	rewind(coverFilePtr);
+	rewind(stegoFilePtr);
 
 	//Navigate to data chunk in cover file
+	verifyWaveFile(coverFilePtr);
 	locateDataChunk(coverFilePtr);
 
 	//LOOP THROIUGH DATA
+	while (!atEndOfFile){
+
 		//Read in 3 bytes
+		if((numRead = fread(byteGroup, 1, 3, coverFilePtr)) != 3){printf("\nERROR: Bytes in cover file could not be read\n\n"); exit(-1);}
 
 		//Compare inner value with outer values
-
+		avg = (byteGroup[0] + byteGroup[2])/2;
 		//If difference <= threshold
 
 			//If message bit = 1
@@ -23,13 +37,14 @@ int hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int 
 
 		//Else, skip group
 
+	}
     return 1;
 }
 
 int extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int threshold){
+	int nextByte;
 	//verify stego file is a wave file
 	verifyWaveFile(stegoFilePtr);
-	//Copy contents of cover file to stego file
 
 	//Navigate to data chunk in stego file
 	locateDataChunk(stegoFilePtr);
@@ -48,7 +63,7 @@ int extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int threshold){
 				//0 written to message file
 
 		//Else, skip group
-		
+
     return 1;
 }
 
@@ -61,14 +76,14 @@ void verifyWaveFile(FILE* waveFile){
 	// check to make sure it is a RIFF file
 	if(memcmp( &(chunk[0].chunkID), "RIFF", 4) != 0)
 	{
-		printf("\nError, file is NOT a RIFF file!\n\n");
+		printf("\nERROR: file is NOT a RIFF file\n\n");
 		exit(-1);
 	}
 
     // check to make sure it is a wave file
 	pChunkData[0] = readChunkData(waveFile, 4);
     if(memcmp( pChunkData[0], "WAVE", 4) != 0){
-		printf("\nError, file is not a WAVE file!\n\n");
+		printf("\nERROR: file is not a WAVE file\n\n");
 		exit(-1);
 	}
 	
@@ -81,7 +96,7 @@ void locateDataChunk(FILE* waveFile){
 	int i = 0;
 	do{
 		if(feof(waveFile)){
-			printf("\nError, Data chunk not found\n\n");
+			printf("\nERROR: Data chunk not found\n\n");
 			exit(-1);
 		}
 		i++;
@@ -115,14 +130,14 @@ BYTE *readChunkData(FILE *fptr, int size)
 	ptr = (BYTE *) malloc(size);
 	if(ptr == NULL)
 	{
-		printf("\nError, could not allocate %d bytes of memory!\n\n", size);
+		printf("\nERROR: could not allocate %d bytes of memory\n\n", size);
 		exit(-1);
 	}
 
 	x = (int) fread(ptr, 1, size, fptr);
 	if(x != size)
 	{
-		printf("\nError reading chunk data!\n\n");
+		printf("\nERROR: Chunk data could not be read\n\n");
 		exit(-1);
 	}
 
