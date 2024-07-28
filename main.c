@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
                 exit(-1);
             }
 
-            result = hideData(coverFilePtr, messageFilePtr, stegoFilePtr, threshold);
+            hideData(coverFilePtr, messageFilePtr, stegoFilePtr, threshold);
             break;
 
         case EXTRACT:
@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
                 exit(-1);
             }
 
-            result = extractData(stegoFilePtr, messageFilePtr, threshold);
+            extractData(stegoFilePtr, messageFilePtr, threshold);
             break;
         default:
             printf("\nERROR: Unknown action.\n\n");
@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
     if(action == HIDE) fclose(coverFilePtr);
     fclose(messageFilePtr);
     fclose(stegoFilePtr);
-    printf("cover file: %s\nmessage file: %s\nstego file: %s\nthreshold = %d\n\n", coverFile, messageFile, stegoFile, threshold);
+    printf("\ncover file: %s\nmessage file: %s\nstego file: %s\nthreshold = %d\n\n", coverFile, messageFile, stegoFile, threshold);
 
     return 0;
 }
