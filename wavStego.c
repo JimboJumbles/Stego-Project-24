@@ -1,10 +1,10 @@
 #include "wavStego.h"
 
 void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int threshold){
-	int nextByte, numRead, difference;
+	int nextByte, numRead, numWritten, difference, seek;
 	float avg;
-	BYTE messageByte, byteGroup[3];
-	int endOfCoverFile = FALSE, endOfMessageFile = FALSE, bitWritten, index = 0;
+	BYTE messageByte, byteGroup[3] ,stegoByteGroup[3];
+	int endOfCoverFile = FALSE, endOfMessageFile = FALSE, index = 0;
 	char nextBit;
 
 	//verify cover file is a wave file
@@ -16,22 +16,27 @@ void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int
 	rewind(coverFilePtr);
 	rewind(stegoFilePtr);
 
-	//Navigate to data chunk in cover file
+	//Navigate to data chunk in cover file and stego file
 	verifyWaveFile(coverFilePtr);
 	locateDataChunk(coverFilePtr);
+	verifyWaveFile(stegoFilePtr);
+	locateDataChunk(stegoFilePtr);
 
 	//LOOP THROIUGH DATA
 	while (!endOfCoverFile){
-		//Reset bitWritten flag
-		bitWritten = FALSE;
+
+		//Breaks out of loop if end flag was finished writing
+		if (index == 0 && endOfMessageFile) break;
 
 		//Read a byte from the message file every 8 bits written
 		if (index == 0 && !endOfMessageFile){
-			if((numRead = fread(&messageByte, 1, 1, messageFilePtr)) == EOF) {messageByte = END_FLAG; endOfMessageFile = TRUE;}
+			numRead = fread(&messageByte, 1, 1, messageFilePtr);
+			if(feof(messageFilePtr)) {messageByte = END_FLAG; endOfMessageFile = TRUE;}
 		}
 
-		//Read in 3 bytes
-		if((numRead = fread(byteGroup, 1, 3, coverFilePtr)) == EOF) endOfCoverFile = TRUE;
+		//Read in 3 bytes from the cover file
+		numRead = fread(byteGroup, 1, 3, coverFilePtr);
+		if(feof(coverFilePtr)) endOfCoverFile = TRUE;
 		if(numRead != 3) break;
 
 		//Compare inner value with outer values
@@ -42,21 +47,23 @@ void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int
 		if(abs(difference) <= threshold){
 			nextBit = getNextBit(messageByte, index);
 			//If message bit = 1
-			if (nextBit == 1){
-				//Change middle byte to 1 less than average if difference is negative
-				if (difference < 0) byteGroup[1] = ceil(avg) - 1;
+			if (nextBit != 0){
+				//Change middle byte to 1 less than average if difference is positive
+				if (difference >= 0) byteGroup[1] = ceil(avg) - 1;
 			}
 			else{
 			//If message bit = 0
-				//Change middle byte to 1 greater than average if difference is positive
-				if (difference >= 0) byteGroup[1] = floor(avg) + 1;
+				//Change middle byte to 1 greater than average if difference is negative
+				if (difference <= 0) byteGroup[1] = floor(avg) + 1;
 			}
-			bitWritten = TRUE;
+			seek = fseek(stegoFilePtr, 1, SEEK_CUR);
+			numWritten = fwrite(&byteGroup[1], 1, 1, stegoFilePtr);
+			seek = fseek(stegoFilePtr, 1, SEEK_CUR);
+			//Update bit index
+			index = (index + 1) % 8;
 		}
-		//Else, skip group
-
-		//Update bit index if a bit was written
-		if (bitWritten) index = (index + 1) % 8;
+		//Else, skip group and skip ahead 3 bytes in the stego file
+		else seek = fseek(stegoFilePtr, 1, SEEK_CUR);
 	}
     return;
 }
@@ -65,7 +72,7 @@ void extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int threshold){
 	int nextByte, numRead, difference;
 	float avg;
 	BYTE byteGroup[3], messageByte;
-	int endOfStegoFile = FALSE, endOfMessageFile = FALSE, endFlagRead = FALSE, bitRead, i, index = 0;
+	int endOfStegoFile = FALSE, endOfMessageFile = FALSE, i, index = 0;
 	int buffer[8];
 	char nextBit;
 
@@ -74,14 +81,12 @@ void extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int threshold){
 
 	//Navigate to data chunk in stego file
 	locateDataChunk(stegoFilePtr);
-	printf("%d, %d\n", endOfStegoFile, endFlagRead);
 	//LOOP THROIUGH DATA
-	while (!endOfStegoFile || !endFlagRead){
-		//Reset bitRead flag
-		bitRead = FALSE;
+	while (!endOfStegoFile){
 
 		//Read in 3 bytes
-		if((numRead = fread(byteGroup, 1, 3, stegoFilePtr)) == EOF) endOfStegoFile = TRUE;
+		numRead = fread(byteGroup, 1, 3, stegoFilePtr);
+		if(feof(stegoFilePtr)) endOfStegoFile = TRUE;
 		if(numRead != 3) break;
 
 		//Compare inner value with outer values
@@ -90,33 +95,28 @@ void extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int threshold){
 		//If difference <= threshold
 		difference = byteGroup[1] - (int)avg;
 		if(abs(difference) <= threshold){
-			//Update bitRead Flag
-			bitRead = TRUE;
-
 			//If difference is positive, 0 written to buffer
-			if (difference >= 0) buffer[index] = 0;
-			//If difference is negative, 1 written to message file
+			if (difference > 0) buffer[index] = 0;
+			//If difference is negative, 1 written to buffer
 			else buffer[index] = 1;
+			//Read a byte from the bits in the buffer every 8 bits
+			if (index == 7){
+				messageByte = readBuffer(buffer);
+				// printf("%d%d%d%d %d%d%d%d: 0x%x\n", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], messageByte);
+				//If last byte read is the end flag, stop extracting
+				if (messageByte == END_FLAG)break;
+			}
+
+			//Flush buffer to message file at end of byte if the last byte wasn't the end flag
+			if (index == 7){
+				fwrite(&messageByte, 1, 1, messageFilePtr);
+			}
+
+			//Update bit index
+			index = (index + 1) % 8;
 		}
 
 		//Else, skip group
-
-		//Read a byte from the bits in the buffer every 8 bits
-		if (bitRead && index == 7){
-			messageByte = readBuffer(buffer);
-			printf("byte: %x\n", messageByte);
-
-			//If last byte read is the end flag, stop extracting
-			if (messageByte == END_FLAG) endFlagRead = TRUE;
-		}
-
-		//Flush buffer to message file at end of byte if the last byte wasn't the end flag
-		if (bitRead && index == 7 && !endFlagRead){
-			fwrite(&messageByte, 1, 1, messageFilePtr);
-		}
-
-		//Update bit index if a bit was read
-		if (bitRead) index = (index + 1) % 8;
 	}
     return;
 }

@@ -6,7 +6,7 @@
 #include <ctype.h>
 #include <math.h>
 #include "wave.h"
-#define END_FLAG 0xFF
+#define END_FLAG 0xff
 
 void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int threshold);
 void extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int threshold);

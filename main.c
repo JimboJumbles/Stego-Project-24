@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
                 printf("\nERROR: Could not open %s.\n\n", messageFile);
                 exit(-1);
             }
-            stegoFilePtr = fopen(stegoFile, "wb");
+            stegoFilePtr = fopen(stegoFile, "wb+");
             if( stegoFilePtr == NULL){
                 printf("\nERROR: Could not open %s.\n\n", stegoFile);
                 exit(-1);
@@ -102,10 +102,10 @@ int main(int argc, char* argv[]) {
             exit(-1);
     }
 
-    if(action == HIDE) fclose(coverFilePtr);
+    if(action == HIDE){fclose(coverFilePtr); printf("\nCover File: %s", coverFile);}
     fclose(messageFilePtr);
     fclose(stegoFilePtr);
-    printf("\ncover file: %s\nmessage file: %s\nstego file: %s\nthreshold = %d\n\n", coverFile, messageFile, stegoFile, threshold);
+    printf("\nmessage file: %s\nstego file: %s\nthreshold = %d\n\n", messageFile, stegoFile, threshold);
 
     return 0;
 }
