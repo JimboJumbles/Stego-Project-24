@@ -56,6 +56,7 @@ void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int
 				//Change middle byte to 1 greater than average if difference is negative
 				if (difference <= 0) byteGroup[1] = floor(avg) + 1;
 			}
+			//Write the byte (changed or not) to the stego file
 			seek = fseek(stegoFilePtr, 1, SEEK_CUR);
 			numWritten = fwrite(&byteGroup[1], 1, 1, stegoFilePtr);
 			seek = fseek(stegoFilePtr, 1, SEEK_CUR);
@@ -148,6 +149,7 @@ void locateDataChunk(FILE* waveFile){
 	W_CHUNK chunk[MAX_CHUNKS];
     BYTE *pChunkData[MAX_CHUNKS];
 	int i = 0;
+	//Iterate through each chunk in the wav file until the header of the data chunk is read
 	do{
 		if(feof(waveFile)){
 			printf("\nERROR: Data chunk not found\n\n");
@@ -156,6 +158,7 @@ void locateDataChunk(FILE* waveFile){
 		i++;
 		readChunkHeader(waveFile, &chunk[i]);
 		if (memcmp( &(chunk[i].chunkID), "data", 4) == 0) return;
+		//If the header wasn't for the data chunk, read until the next header
 		pChunkData[i] = readChunkData(waveFile, chunk[i].chunkSize);
 	}while(memcmp( &(chunk[i].chunkID), "data", 4) != 0);
 	return;
@@ -199,12 +202,15 @@ BYTE *readChunkData(FILE *fptr, int size)
 } // readChunkData
 
 char getNextBit(BYTE currentByte, int index){
+	//Return isolated bit at desired position
 	char bit = 1 << (7 - index);
+	//Effectively returns boolean for a 1 at the position specified
 	return (bit & currentByte);
 }
 
 BYTE readBuffer(int* buffer){
 	int i, total = 0;
+	//Iterate through byte buffer and convert to decimal integer
 	for (i = 0; i < 8; i++){
 		if(buffer[i] == 1){
 			total += (int) pow(2, (7-i));
