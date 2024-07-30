@@ -1,3 +1,8 @@
+/*
+    CODE AUTHORS:
+        Janelle Wiggins
+        Josh Graham
+*/
 #ifndef WAVSTEGO_H
 #define WAVSTEGO_H
 #include <stdio.h>

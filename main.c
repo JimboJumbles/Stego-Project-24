@@ -1,3 +1,8 @@
+/*
+    CODE AUTHORS:
+        Janelle Wiggins
+        Josh Graham
+*/
 #include "wavStego.h"
 
 #define HIDE 1

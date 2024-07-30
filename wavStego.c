@@ -1,3 +1,8 @@
+/*
+    CODE AUTHORS:
+        Janelle Wiggins
+        Josh Graham
+*/
 #include "wavStego.h"
 
 void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int threshold){
