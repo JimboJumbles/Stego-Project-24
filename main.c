@@ -18,14 +18,15 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    int action, result, flagCount = 0;
+    int temp, action, result, flagCount = 0;
     char stegoFile[64] = {0};
     char coverFile[64] = {0};
     char messageFile[64] = {0};
     FILE* stegoFilePtr;
     FILE* coverFilePtr;
     FILE* messageFilePtr;
-    int threshold = 40; // default threshold
+    // int threshold = 40; //default threshold
+    int bitcount = 1; //default bits written or read
 
     //Check first argument for desired action
     if (strcmp(argv[1], "-hide") == 0) {
@@ -55,11 +56,14 @@ int main(int argc, char* argv[]) {
                 //Generate default stego file name
                 strcat(stegoFile, "stego_");
                 strcat(stegoFile, coverFile);
-                strcat(stegoFile, ".bin");
+                // strcat(stegoFile, ".bin");
             }
-            //Parse threshold
-            result = findInArgv(argc, argv, "-t");
-            if (result && argc > result + 1){flagCount++; threshold = atoi(argv[result + 1]);}
+            // //Parse threshold
+            // result = findInArgv(argc, argv, "-t");
+            // if (result && argc > result + 1){flagCount++; threshold = atoi(argv[result + 1]);}
+            //Parse bitswritten, assigns it to bitcount if 4 or less
+            result = findInArgv(argc, argv, "-n");
+            if (result && argc > result + 1){flagCount++; temp = atoi(argv[result + 1]); bitcount = (temp < 5) ? temp : 1;}
             //Error if extra arguments are read
             if ((2*flagCount + 2) != argc){printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-t [threshold])\n\n"); exit(-1);}
 
@@ -84,14 +88,14 @@ int main(int argc, char* argv[]) {
             }
 
             //Call function to hide the message file data in a copy of the cover file at the desired threshold
-            hideData(coverFilePtr, messageFilePtr, stegoFilePtr, threshold);
+            hideData(coverFilePtr, messageFilePtr, stegoFilePtr, bitcount);
             break;
 
         case EXTRACT:
             //Parse stego file, error if not found
             result = findInArgv(argc, argv, "-s");
             if (result && argc > result + 1){flagCount++; strcpy(stegoFile, argv[result + 1]);}
-            else printf("\nERROR: Usage: StegoProject.exe -extract -s [stego file] (-o [message file]) (-t [threshold])\n\n"); exit(-1);
+            else {printf("\nERROR: Usage: StegoProject.exe -extract -s [stego file] (-o [message file]) (-t [threshold])\n\n"); exit(-1);}
             //Parse message file
             result = findInArgv(argc, argv, "-o");
             if (result && argc > result + 1){flagCount++; strcpy(messageFile, argv[result + 1]);}
@@ -101,9 +105,9 @@ int main(int argc, char* argv[]) {
                 strcat(messageFile, stegoFile);
                 strcat(messageFile, ".bin");
             }
-            //Parse threshold
-            result = findInArgv(argc, argv, "-t");
-            if (result && argc > result + 1){flagCount++; threshold = atoi(argv[result + 1]);}
+            // //Parse threshold
+            // result = findInArgv(argc, argv, "-t");
+            // if (result && argc > result + 1){flagCount++; threshold = atoi(argv[result + 1]);}
             //Error if extra arguments are read
             if ((2*flagCount + 2) != argc){printf("\nERROR: Usage: StegoProject.exe -extract -s [stego file] (-o [message file]) (-t [threshold])\n\n"); exit(-1);}
 
@@ -122,7 +126,7 @@ int main(int argc, char* argv[]) {
             }
 
             //Call function to read hidden data from the stego file into the message file at the desired threshold
-            extractData(stegoFilePtr, messageFilePtr, threshold);
+            extractData(stegoFilePtr, messageFilePtr, bitcount);
             break;
         //Error if the action wasn't hide or extract
         default:
@@ -135,7 +139,9 @@ int main(int argc, char* argv[]) {
     fclose(messageFilePtr);
     fclose(stegoFilePtr);
     //Print all used files
-    printf("\nmessage file: %s\nstego file: %s\nthreshold = %d\n\n", messageFile, stegoFile, threshold);
+    printf("\nmessage file: %s\nstego file: %s\n", messageFile, stegoFile);
+    if (action == HIDE) printf("bits written per modified sample: %d\n", bitcount);
+    else printf("bits read per modified sample: %d\n", bitcount);
 
     return 0;
 }

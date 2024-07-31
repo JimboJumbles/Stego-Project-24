@@ -2,7 +2,7 @@ This program hides a message file in the data of a 8-bit mono WAV file.
 The executable can be run with 3 sets of commnad-line arguments:
 1. StegoProject.exe (NO ARGUMENTS)
     - Prints usage examples
-2. StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-t [threshold])
-    - Hides the message file in a copy of the cover file, then stored in the optional stego file (file generated if not specified), by modifying every third byte in the WAV file to differ just slightly above or below the average of the surrounding byte values if the initial difference between them is beneath the threshold (40 by default)
+2. StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-b bytesWritten) (-t [threshold])
+    - Hides the message file in a copy of the cover file, then stored in the optional stego file (file generated if not specified), by modifying every third byte in the WAV file to differ just slightly above or below the average of the surrounding byte values if the initial difference between them is beneath the threshold (40 by default). bytesWritten specifies how many bytes of message data to hide in each modified sample.
 3. StegoProject.exe -extract -s [stego file] (-o [message file]) (-t [threshold])
-    - Extracts message data from the specified stego WAV file by comparing every third byte in the WAV file against the average of the surrounding byte values. Depending on the difference between the values, either a 1 or a 0 is written to the message file (generated automatically if not specified) if the difference between the values is less than the threshold (40 by default)
+    - Extracts message data from the specified stego WAV file by comparing every third byte in the WAV file against the average of the surrounding byte values. Depending on the difference between the values, either a 1 or a 0 is written to the message file (generated automatically if not specified) if the difference between the values is less than the threshold (40 by default). bytesWritten specifies how many bytes of message data to read fro each modified sample.
