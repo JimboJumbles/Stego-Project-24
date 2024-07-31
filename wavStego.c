@@ -6,17 +6,30 @@
 #include "wavStego.h"
 
 void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int bitcount){
-	int nextByte, numRead, numWritten, difference, seek, endOfCoverFile = FALSE, endOfMessageFile = FALSE, index = 0, bitArray[8];
-	float avg;
-	BYTE messageByte, byteGroup[2] ,stegoByteGroup[2];
+	int i, totalBytesUsed = 0, fileCapacity = 0, messageSize = 0, messageBytesWritten = 0, numRead, numWritten, difference, index = 0, endByteCount = bitcount, avg;
+	int endOfCoverFile = FALSE, endOfMessageFile = FALSE;
+	int bitArray[8], messageBuffer[8 * bitcount];
+	BYTE messageBytes[bitcount], byteGroup[2] ,stegoByteGroup[2];
 	char nextBit;
 
 	//verify cover file is a wave file
 	verifyWaveFile(coverFilePtr);
+
+	//Get total modifiable bytes
+	while(fread(&i, 1, 1, coverFilePtr) != 0){
+		fileCapacity++;
+	}
+
+	//Get total message size
+	while(fread(&i, 1, 1, messageFilePtr) != 0){
+		messageSize++;
+	}
+
 	rewind(coverFilePtr);
+	rewind(messageFilePtr);
 
 	//Copy contents of cover file to stego file
-	while((nextByte = fgetc(coverFilePtr)) != EOF) {fputc(nextByte, stegoFilePtr);}
+	while((i = fgetc(coverFilePtr)) != EOF) {fputc(i, stegoFilePtr);}
 	rewind(coverFilePtr);
 	rewind(stegoFilePtr);
 
@@ -30,12 +43,22 @@ void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int
 	while (!endOfCoverFile){
 
 		//Breaks out of loop if end flag was finished writing
-		if (index == 0 && endOfMessageFile) break;
+		if (index % (8 * endByteCount) == 0 && endOfMessageFile) break;
 
-		//Read a byte from the message file every 8 bits written
+		//Read a number of bytes equal to bitcount from the message file every 8 samples changed
 		if (index == 0 && !endOfMessageFile){
-			numRead = fread(&messageByte, 1, 1, messageFilePtr);
-			if(feof(messageFilePtr)) {messageByte = END_FLAG; endOfMessageFile = TRUE;}
+			numRead = fread(messageBytes, 1, bitcount, messageFilePtr);
+			//After reading all of the message file, add on an end flag byte (0xFF) to signify end of message
+			if(feof(messageFilePtr)){
+				messageBytes[numRead] = END_FLAG;
+				endOfMessageFile = TRUE;
+				endByteCount = numRead + 1;
+			}
+			messageBytesWritten += numRead;
+			//Translate bytes read into individual bits
+			for(i = 0; i < endByteCount; i++){
+				decimalToBinary(messageBytes[i], messageBuffer, 8 * i);
+				}
 		}
 
 		//Read in 2 bytes from the cover file
@@ -47,36 +70,53 @@ void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int
 		avg = (byteGroup[0] + byteGroup[1])/2;
 
 		//Convert average to binary
-		decimalToBinary(avg, bitArray);
-		difference = byteGroup[1] - (int)avg;
-		nextBit = getNextBit(messageByte, index);
-		//If message bit = 1
-		if (nextBit != 0){
-			//Change middle byte to 1 less than average if difference is positive
-			if (difference >= 0) byteGroup[1] = ceil(avg) - 1;
+		decimalToBinary(avg, bitArray, 0);
+		//Difference = [bitcount] bits of message data - [bitcount] LSBs of avg
+		difference = readBuffer(messageBuffer, bitcount, index) - readBuffer(bitArray, bitcount, 8 - bitcount);
+
+		//If the average in the cover file bytes is greater, lower the values of those 2 bytes
+		if (difference < 0){
+			for (i = 0; i < abs(difference); i++){
+				byteGroup[0]--;
+				byteGroup[1]--;
+			}
 		}
-		else{
-		//If message bit = 0
-			//Change middle byte to 1 greater than average if difference is negative
-			if (difference <= 0) byteGroup[1] = floor(avg) + 1;
+		//If the average in the cover file bytes is lower, raise the values of those 2 bytes
+		else if (difference > 0){
+			for (i = 0; i < difference; i++){
+				byteGroup[0]++;
+				byteGroup[1]++;
+			}
 		}
+
+		//If no difference, skip to next bytes.
+
 		//Write the byte (changed or not) to the stego file
-		seek = fseek(stegoFilePtr, 1, SEEK_CUR);
-		numWritten = fwrite(&byteGroup[1], 1, 1, stegoFilePtr);
-		seek = fseek(stegoFilePtr, 1, SEEK_CUR);
+		fseek(stegoFilePtr, 0, SEEK_CUR);
+		numWritten = fwrite(&byteGroup, 1, 2, stegoFilePtr);
+		fseek(stegoFilePtr, 0, SEEK_CUR);
+		totalBytesUsed += 2;
 		//Update bit index
-		index = (index + 1) % 8;
-		//Else, skip group and skip ahead 3 bytes in the stego file
+		index = (index + bitcount) % (8 * bitcount);
 	}
+	//Print end statistics
+	if (!endOfMessageFile)printf("\nWARNING: Could not fit all %d bytes of message data!\n", messageSize);
+	printf("\nHiding Capacity of Cover File:\t\t%d bytes\n", fileCapacity);
+	printf("Total Message File Data Written:\t%d bytes\n", messageBytesWritten);
+	printf("Number of bytes modified:\t\t%d bytes\n", totalBytesUsed);
+	printf("%% of Bytes Modified:\t\t\t%.3lf%%\n", (totalBytesUsed * 100.0)/fileCapacity);
+	printf("Bits written per modified sample:\t%d\n\n", bitcount);
+	fclose(coverFilePtr);
+	fclose(messageFilePtr);
+    fclose(stegoFilePtr);
     return;
 }
 
 void extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int bitcount){
-	int nextByte, numRead, difference;
-	float avg;
-	BYTE byteGroup[3], messageByte;
-	int endOfStegoFile = FALSE, endOfMessageFile = FALSE, i, index = 0;
-	int buffer[8];
+	int i, j, nextByte, numRead, avg, index = 0, totalRead = 0;
+	BYTE byteGroup[2], messageByte;
+	int endOfStegoFile = FALSE, endOfMessageFile = FALSE;
+	int messageBuffer[8 * bitcount], bitArray[8];
 	char nextBit;
 
 	//verify stego file is a wave file
@@ -85,39 +125,43 @@ void extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int bitcount){
 	//Navigate to data chunk in stego file
 	locateDataChunk(stegoFilePtr);
 	//LOOP THROIUGH DATA
-	while (!endOfStegoFile){
+	while (!endOfStegoFile && !endOfMessageFile){
 
-		//Read in 3 bytes
-		numRead = fread(byteGroup, 1, 3, stegoFilePtr);
+		//Read in 2 bytes
+		numRead = fread(byteGroup, 1, 2, stegoFilePtr);
 		if(feof(stegoFilePtr)) endOfStegoFile = TRUE;
-		if(numRead != 3) break;
+		if(numRead != 2) break;
 
 		//Compare inner value with outer values
-		avg = (byteGroup[0] + byteGroup[2])/2.0;
+		avg = (byteGroup[0] + byteGroup[1])/2;
 
-		//If difference <= threshold
-		difference = byteGroup[1] - (int)avg;
-			//If difference is positive, 0 written to buffer
-			if (difference > 0) buffer[index] = 0;
-			//If difference is negative, 1 written to buffer
-			else buffer[index] = 1;
-			//Read a byte from the bits in the buffer every 8 bits
-			if (index == 7){
-				messageByte = readBuffer(buffer, 8);
-				// printf("%d%d%d%d %d%d%d%d: 0x%x\n", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], messageByte);
-				//If last byte read is the end flag, stop extracting
-				if (messageByte == END_FLAG)break;
+
+		//Convert average to binary
+		decimalToBinary(avg, bitArray, 0);
+
+		// Last [bitcount] bits are written to the message buffer
+		for (i = 0; i < bitcount; i++){
+			messageBuffer[index + i] = bitArray[8 - bitcount + i];
+		}
+
+		//Update bit index
+		index = (index + bitcount) % (8 * bitcount);
+
+		//Convert message buffer into byte values once buffer is full
+		if(index == 0){
+			for(i = 0; i < bitcount; i++){
+				messageByte = readBuffer(messageBuffer, 8, 8 * i);
+				if (messageByte == END_FLAG) {endOfMessageFile = TRUE; break;}
+				else{
+					fwrite(&messageByte, 1, 1, messageFilePtr);
+					totalRead++;
+				}
 			}
-
-			//Flush buffer to message file at end of byte if the last byte wasn't the end flag
-			if (index == 7){
-				fwrite(&messageByte, 1, 1, messageFilePtr);
-			}
-
-			//Update bit index
-			index = (index + 1) % 8;
-
+		}
 	}
+	printf("\nTotal bytes extracted:\t\t%d bytes\n", totalRead);
+	fclose(messageFilePtr);
+    fclose(stegoFilePtr);
     return;
 }
 
@@ -207,25 +251,25 @@ char getNextBit(BYTE currentByte, int index){
 	return (bit & currentByte);
 }
 
-BYTE readBuffer(int* buffer, int size){
+//Iterates through byte buffer and converts to decimal integer
+BYTE readBuffer(int* buffer, int numToRead, int offset){
 	int i, total = 0;
-	//Iterate through byte buffer and convert to decimal integer
-	for (i = 0; i < size; i++){
-		if(buffer[i] == 1){
-			total += (int) pow(2, (i));
+	for (i = 0; i < numToRead; i++){
+		if(buffer[offset + i] == 1){
+			total += (int) pow(2, (numToRead - 1 - i));
 		}
 	}
 	return total;
 }
 
 //Converts an 8-bit decimal number into a binary number stored as an array of bits
-void decimalToBinary(BYTE decimal, int* bitArray){
+void decimalToBinary(BYTE decimal, int* bitArray, int offset){
 	if (log2(decimal) >= 8.0){
 		printf("\nERROR: decimal read > 255\n");
 		exit(-1);
 	}
 	int i;
-	for (i = 7; i > 0; i--){
+	for (i = 7 + offset; i >= offset; i--){
 		bitArray[i] = decimal % 2;
 		decimal = (int) floor(decimal / 2);
 	}

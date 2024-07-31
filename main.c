@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
 
     //Demonstrate program usage if exe is run alone
     if (argc == 1) {
-        printf("RUN OPTIONS:\nHIDE:\t\tStegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-t [threshold])\nEXTRACT:\tStegoProject.exe -extract -s [stego file] (-o [message file]) (-t [threshold])\n");
+        printf("RUN OPTIONS:\nHIDE:\t\tStegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-b [bitcount])\nEXTRACT:\tStegoProject.exe -extract -s [stego file] (-o [message file]) (-b [bitcount])\n");
         return 0;
     }
 
@@ -44,11 +44,11 @@ int main(int argc, char* argv[]) {
             //Parse message file, error if not found
             result = findInArgv(argc, argv, "-m");
             if (result && argc > result + 1){flagCount++; strcpy(messageFile, argv[result + 1]);}
-            else {printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-t [threshold])\n\n"); exit(-1);}
+            else {printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-b [bitcount])\n\n"); exit(-1);}
             //Parse cover file, error if not found
             result = findInArgv(argc, argv, "-c");
             if (result && argc > result + 1){flagCount++; strcpy(coverFile, argv[result + 1]);}
-            else {printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-t [threshold])\n\n"); exit(-1);}
+            else {printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-b [bitcount])\n\n"); exit(-1);}
             //Parse stego file
             result = findInArgv(argc, argv, "-o");
             if (result && argc > result + 1){flagCount++; strcpy(stegoFile, argv[result + 1]);}
@@ -56,16 +56,12 @@ int main(int argc, char* argv[]) {
                 //Generate default stego file name
                 strcat(stegoFile, "stego_");
                 strcat(stegoFile, coverFile);
-                // strcat(stegoFile, ".bin");
             }
-            // //Parse threshold
-            // result = findInArgv(argc, argv, "-t");
-            // if (result && argc > result + 1){flagCount++; threshold = atoi(argv[result + 1]);}
-            //Parse bitswritten, assigns it to bitcount if 4 or less
-            result = findInArgv(argc, argv, "-n");
+            //Parse bitcount, assigns it to bitcount if 4 or less
+            result = findInArgv(argc, argv, "-b");
             if (result && argc > result + 1){flagCount++; temp = atoi(argv[result + 1]); bitcount = (temp < 5) ? temp : 1;}
             //Error if extra arguments are read
-            if ((2*flagCount + 2) != argc){printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-t [threshold])\n\n"); exit(-1);}
+            if ((2*flagCount + 2) != argc){printf("\nERROR: Usage: StegoProject.exe -hide -c [cover file] -m [message file] (-o [stego file]) (-b [bitcount])\n\n"); exit(-1);}
 
             //Open all input files
             //Open cover file as binary to be read
@@ -78,12 +74,15 @@ int main(int argc, char* argv[]) {
             messageFilePtr = fopen(messageFile, "rb");
             if( messageFilePtr == NULL){
                 printf("\nERROR: Could not open %s.\n\n", messageFile);
+                fclose(coverFilePtr);
                 exit(-1);
             }
             //Open stego file as binary to be read and written
             stegoFilePtr = fopen(stegoFile, "wb+");
             if( stegoFilePtr == NULL){
                 printf("\nERROR: Could not open %s.\n\n", stegoFile);
+                fclose(coverFilePtr);
+                fclose(messageFilePtr);
                 exit(-1);
             }
 
@@ -95,7 +94,7 @@ int main(int argc, char* argv[]) {
             //Parse stego file, error if not found
             result = findInArgv(argc, argv, "-s");
             if (result && argc > result + 1){flagCount++; strcpy(stegoFile, argv[result + 1]);}
-            else {printf("\nERROR: Usage: StegoProject.exe -extract -s [stego file] (-o [message file]) (-t [threshold])\n\n"); exit(-1);}
+            else {printf("\nERROR: Usage: StegoProject.exe -extract -s [stego file] (-o [message file]) (-b [bitcount])\n\n"); exit(-1);}
             //Parse message file
             result = findInArgv(argc, argv, "-o");
             if (result && argc > result + 1){flagCount++; strcpy(messageFile, argv[result + 1]);}
@@ -105,11 +104,11 @@ int main(int argc, char* argv[]) {
                 strcat(messageFile, stegoFile);
                 strcat(messageFile, ".bin");
             }
-            // //Parse threshold
-            // result = findInArgv(argc, argv, "-t");
-            // if (result && argc > result + 1){flagCount++; threshold = atoi(argv[result + 1]);}
+            //Parse bitcount, assigns it to bitcount if 4 or less
+            result = findInArgv(argc, argv, "-b");
+            if (result && argc > result + 1){flagCount++; temp = atoi(argv[result + 1]); bitcount = (temp < 5) ? temp : 1;}
             //Error if extra arguments are read
-            if ((2*flagCount + 2) != argc){printf("\nERROR: Usage: StegoProject.exe -extract -s [stego file] (-o [message file]) (-t [threshold])\n\n"); exit(-1);}
+            if ((2*flagCount + 2) != argc){printf("\nERROR: Usage: StegoProject.exe -extract -s [stego file] (-o [message file]) (-b [bitcount])\n\n"); exit(-1);}
 
             //Open all input files
             //Open message file as binary to be written
@@ -122,6 +121,7 @@ int main(int argc, char* argv[]) {
             stegoFilePtr = fopen(stegoFile, "rb");
             if( stegoFilePtr == NULL){
                 printf("\nERROR: Could not open %s.\n\n", stegoFile);
+                fclose(messageFilePtr);
                 exit(-1);
             }
 
@@ -134,14 +134,11 @@ int main(int argc, char* argv[]) {
             exit(-1);
     }
 
-    //Close all opened files
-    if(action == HIDE){fclose(coverFilePtr); printf("\nCover File: %s", coverFile);}
+    //Close all opened files and print all used files
+    if(action == HIDE){fclose(coverFilePtr); printf("Cover File:\t%s", coverFile);}
     fclose(messageFilePtr);
     fclose(stegoFilePtr);
-    //Print all used files
-    printf("\nmessage file: %s\nstego file: %s\n", messageFile, stegoFile);
-    if (action == HIDE) printf("bits written per modified sample: %d\n", bitcount);
-    else printf("bits read per modified sample: %d\n", bitcount);
+    printf("\nmessage file:\t%s\nstego file:\t%s\n\n", messageFile, stegoFile);
 
     return 0;
 }

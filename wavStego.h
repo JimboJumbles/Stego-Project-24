@@ -20,6 +20,7 @@ void locateDataChunk(FILE* waveFile);
 int readChunkHeader(FILE *fptr, W_CHUNK *pChunk);
 BYTE *readChunkData(FILE *fptr, int size);
 char getNextBit(BYTE currentByte, int index);
-BYTE readBuffer(int* buffer, int count);
+BYTE readBuffer(int* buffer, int count, int offset);
+void decimalToBinary(BYTE decimal, int* bitArray, int offset);
 
 #endif
