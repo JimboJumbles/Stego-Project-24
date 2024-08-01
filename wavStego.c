@@ -61,7 +61,6 @@ void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int
 	//LOOP THROIUGH DATA
 	while (!endOfCoverFile && messageBytesWritten <= messageSize){
 
-		//Breaks out of loop if end flag was finished writing
 		if (index % (8 * endByteCount) == 0 && endOfMessageFile) break;
 
 		//Read a number of bytes equal to bitcount from the message file every 8 samples changed
