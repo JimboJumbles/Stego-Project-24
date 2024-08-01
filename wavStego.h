@@ -11,7 +11,7 @@
 #include <ctype.h>
 #include <math.h>
 #include "wave.h"
-#define END_FLAG 0xff
+#define MESSAGE_SIZE_BIT_COUNT 32
 
 void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int bitcount);
 void extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int bitcount);
@@ -20,7 +20,7 @@ void locateDataChunk(FILE* waveFile);
 int readChunkHeader(FILE *fptr, W_CHUNK *pChunk);
 BYTE *readChunkData(FILE *fptr, int size);
 char getNextBit(BYTE currentByte, int index);
-BYTE readBuffer(int* buffer, int count, int offset);
-void decimalToBinary(BYTE decimal, int* bitArray, int offset);
+int readBuffer(int* buffer, int count, int offset);
+void decimalToBinary(int decimal, int* bitArray, int offset, int size);
 
 #endif

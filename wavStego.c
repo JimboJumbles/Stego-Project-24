@@ -8,8 +8,8 @@
 void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int bitcount){
 	int i, totalBytesUsed = 0, fileCapacity = 0, messageSize = 0, messageBytesWritten = 0, numRead, numWritten, difference, index = 0, endByteCount = bitcount, avg;
 	int endOfCoverFile = FALSE, endOfMessageFile = FALSE;
-	int bitArray[8], messageBuffer[8 * bitcount];
-	BYTE messageBytes[bitcount], byteGroup[2] ,stegoByteGroup[2];
+	int bitArray[8], messageBuffer[8 * bitcount], sizeArray[MESSAGE_SIZE_BIT_COUNT];
+	BYTE messageBytes[bitcount], byteGroup[2] ,stegoByteGroup[2], nextByte;
 	char nextBit;
 
 	//verify cover file is a wave file
@@ -39,26 +39,42 @@ void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int
 	verifyWaveFile(stegoFilePtr);
 	locateDataChunk(stegoFilePtr);
 
+	//Embed message file size at beginning of data chunk
+	decimalToBinary(messageSize, sizeArray, 0, MESSAGE_SIZE_BIT_COUNT);
+	while (index < MESSAGE_SIZE_BIT_COUNT && !endOfCoverFile){
+		if (MESSAGE_SIZE_BIT_COUNT - index < bitcount) endByteCount = MESSAGE_SIZE_BIT_COUNT - index;
+		if(fread(&nextByte, 1, 1, coverFilePtr) != 1) endOfCoverFile = TRUE;
+		decimalToBinary(nextByte, bitArray, 0, 8);
+		for(i = 0; i < endByteCount; i++){
+			bitArray[8 - (endByteCount - i)] = sizeArray[index + i];
+			// printf("%d", sizeArray[index + i]);
+		}
+		nextByte = readBuffer(bitArray, 8, 0);
+		fseek(stegoFilePtr, 0, SEEK_CUR);
+		numWritten = fwrite(&nextByte, 1, 1, stegoFilePtr);
+		fseek(stegoFilePtr, 0, SEEK_CUR);
+		totalBytesUsed++;
+		index += bitcount;
+	}
+	index = 0;
+
 	//LOOP THROIUGH DATA
-	while (!endOfCoverFile){
+	while (!endOfCoverFile && messageBytesWritten <= messageSize){
 
 		//Breaks out of loop if end flag was finished writing
 		if (index % (8 * endByteCount) == 0 && endOfMessageFile) break;
 
 		//Read a number of bytes equal to bitcount from the message file every 8 samples changed
-		if (index == 0 && !endOfMessageFile){
+		else if (index == 0 && !endOfMessageFile){
 			numRead = fread(messageBytes, 1, bitcount, messageFilePtr);
-			//After reading all of the message file, add on an end flag byte (0xFF) to signify end of message
-			if(feof(messageFilePtr)){
-				messageBytes[numRead] = END_FLAG;
-				endOfMessageFile = TRUE;
-				endByteCount = numRead + 1;
-			}
+			if (numRead == 0){endOfMessageFile = TRUE; break;}
+			else if (numRead < bitcount) endByteCount = numRead;
+			if (feof(messageFilePtr)) endOfMessageFile = TRUE;
 			messageBytesWritten += numRead;
 			//Translate bytes read into individual bits
 			for(i = 0; i < endByteCount; i++){
-				decimalToBinary(messageBytes[i], messageBuffer, 8 * i);
-				}
+				decimalToBinary(messageBytes[i], messageBuffer, 8 * i, 8);
+			}
 		}
 
 		//Read in 2 bytes from the cover file
@@ -70,7 +86,7 @@ void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int
 		avg = (byteGroup[0] + byteGroup[1])/2;
 
 		//Convert average to binary
-		decimalToBinary(avg, bitArray, 0);
+		decimalToBinary(avg, bitArray, 0, 8);
 		//Difference = [bitcount] bits of message data - [bitcount] LSBs of avg
 		difference = readBuffer(messageBuffer, bitcount, index) - readBuffer(bitArray, bitcount, 8 - bitcount);
 
@@ -113,10 +129,10 @@ void hideData(FILE* coverFilePtr, FILE*  messageFilePtr, FILE* stegoFilePtr, int
 }
 
 void extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int bitcount){
-	int i, j, nextByte, numRead, avg, index = 0, totalRead = 0;
+	int i, j, nextByte, numRead, avg, messageSize = 0, index = 0, totalRead = 0, endBitCount = bitcount;
 	BYTE byteGroup[2], messageByte;
 	int endOfStegoFile = FALSE, endOfMessageFile = FALSE;
-	int messageBuffer[8 * bitcount], bitArray[8];
+	int messageBuffer[8 * bitcount], bitArray[8], sizeArray[MESSAGE_SIZE_BIT_COUNT];
 	char nextBit;
 
 	//verify stego file is a wave file
@@ -124,8 +140,22 @@ void extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int bitcount){
 
 	//Navigate to data chunk in stego file
 	locateDataChunk(stegoFilePtr);
+
+	//Read message file size from beginning of data chunk
+	decimalToBinary(messageSize, sizeArray, 0, MESSAGE_SIZE_BIT_COUNT);
+	while (index < MESSAGE_SIZE_BIT_COUNT && !endOfStegoFile){
+		if (MESSAGE_SIZE_BIT_COUNT - index < bitcount) endBitCount = MESSAGE_SIZE_BIT_COUNT - index;
+		if(fread(&nextByte, 1, 1, stegoFilePtr) != 1){endOfStegoFile = TRUE; break;}
+		decimalToBinary(nextByte, bitArray, 0, 8);
+		for(i = 0; i < endBitCount; i++){
+			sizeArray[index + i] = bitArray[8 - (endBitCount - i)];
+		}
+		index += bitcount;
+	}
+	messageSize = readBuffer(sizeArray, MESSAGE_SIZE_BIT_COUNT, 0);
+	index = 0;
 	//LOOP THROIUGH DATA
-	while (!endOfStegoFile && !endOfMessageFile){
+	while (!endOfStegoFile && !endOfMessageFile && totalRead < messageSize){
 
 		//Read in 2 bytes
 		numRead = fread(byteGroup, 1, 2, stegoFilePtr);
@@ -137,7 +167,7 @@ void extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int bitcount){
 
 
 		//Convert average to binary
-		decimalToBinary(avg, bitArray, 0);
+		decimalToBinary(avg, bitArray, 0, 8);
 
 		// Last [bitcount] bits are written to the message buffer
 		for (i = 0; i < bitcount; i++){
@@ -151,11 +181,8 @@ void extractData(FILE* stegoFilePtr, FILE* messageFilePtr, int bitcount){
 		if(index == 0){
 			for(i = 0; i < bitcount; i++){
 				messageByte = readBuffer(messageBuffer, 8, 8 * i);
-				if (messageByte == END_FLAG) {endOfMessageFile = TRUE; break;}
-				else{
-					fwrite(&messageByte, 1, 1, messageFilePtr);
-					totalRead++;
-				}
+				fwrite(&messageByte, 1, 1, messageFilePtr);
+				totalRead++;
 			}
 		}
 	}
@@ -252,7 +279,7 @@ char getNextBit(BYTE currentByte, int index){
 }
 
 //Iterates through byte buffer and converts to decimal integer
-BYTE readBuffer(int* buffer, int numToRead, int offset){
+int readBuffer(int* buffer, int numToRead, int offset){
 	int i, total = 0;
 	for (i = 0; i < numToRead; i++){
 		if(buffer[offset + i] == 1){
@@ -262,14 +289,10 @@ BYTE readBuffer(int* buffer, int numToRead, int offset){
 	return total;
 }
 
-//Converts an 8-bit decimal number into a binary number stored as an array of bits
-void decimalToBinary(BYTE decimal, int* bitArray, int offset){
-	if (log2(decimal) >= 8.0){
-		printf("\nERROR: decimal read > 255\n");
-		exit(-1);
-	}
+//Converts a decimal integer into a binary number stored as an array of bits
+void decimalToBinary(int decimal, int* bitArray, int offset, int size){
 	int i;
-	for (i = 7 + offset; i >= offset; i--){
+	for (i = (size - 1) + offset; i >= offset; i--){
 		bitArray[i] = decimal % 2;
 		decimal = (int) floor(decimal / 2);
 	}
